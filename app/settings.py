@@ -132,3 +132,7 @@ AUTH_USER_MODEL = 'stock_simulator.User'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+LOGIN_URL = '/login'
+
+LOGIN_REDIRECT_URL = '/login'
