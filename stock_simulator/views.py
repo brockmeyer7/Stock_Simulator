@@ -14,11 +14,18 @@ class RegisterForm(forms.Form):
 
 class BuyForm(forms.Form):
     symbol = forms.CharField()
-    shares = forms.CharField()
+    shares = forms.IntegerField(min_value=1)
 
 class LoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField()
+
+class QuoteForm(forms.Form):
+    symbol = forms.CharField()
+
+class SellForm(forms.Form):
+    symbol = forms.CharField()
+    shares = forms.IntegerField(min_value=1)
 
 @require_http_methods(['GET'])
 @login_required
@@ -57,12 +64,8 @@ def buy(request):
             symbol = form.cleaned_data['symbol']
             shares = form.cleaned_data['shares']
 
-            if not symbol or lookup(symbol) is None:
+            if lookup(symbol) is None:
                 return apology("Enter valid stock symbol")
-            if not shares or not shares.isdigit():
-                return apology("Enter positive integer")
-            elif int(shares) <= 0:
-                return apology("Enter positive integer")
 
             shares = int(shares)
             symbol_data = lookup(symbol)
@@ -89,17 +92,72 @@ def buy(request):
             t.save()
 
             return redirect('/')
+        else:
+            return redirect('/buy')
     return render(request, 'buy.html')
 
 @require_http_methods(['GET', 'POST'])
 @login_required
 def sell(request):
-    pass
+    owned = Owned.objects.filter(user_id=request.user)
+    if request.method == 'POST':
+        form = SellForm(request.POST)
+        if form.is_valid():
+            symbol = form.cleaned_data['symbol']
+            shares = int(form.cleaned_data['shares'])
+            symbols_owned = []
+
+            for row in owned:
+                symbols_owned.append(row.symbol)
+            if symbol not in symbols_owned:
+                return apology('Enter valid stock symbol')
+
+            symbol_data = lookup(symbol)
+            price = float(symbol_data['price'])
+            user = request.user
+            cash = user.cash
+
+            for row in owned:
+                if symbol == row.symbol:
+                    if shares == row.shares:
+                        cash = cash + (price * shares)
+                        user.cash = cash
+                        t = Transactions(user_id=user, symbol=symbol, price=price, shares=shares, type='sell')
+                        row.delete()
+                        user.save()
+                        t.save()
+                    elif shares > row.shares:
+                        return apology('Not enough shares')
+                    else:
+                        row.shares = row.shares - shares
+                        cash = cash + (price * shares)
+                        user.cash = cash
+                        t = Transactions(user_id=user, symbol=symbol, price=price, shares=shares, type='sell')
+                        row.save()
+                        user.save()
+                        t.save()
+            owned = Owned.objects.filter(user_id=user)
+            return redirect('/')
+        else:
+            return redirect('/sell')
+    return render(request, 'sell.html', {'owned': owned})
 
 @require_http_methods(['GET', 'POST'])
 @login_required
 def quote(request):
-    pass
+    if request.method == 'POST':
+        form = QuoteForm(request.POST)
+        if form.is_valid():
+            symbol = form.cleaned_data['symbol']
+            if lookup(symbol) is None:
+                return apology('Invalid ticker')
+            symbol_data = lookup(symbol)
+            name = symbol_data['name']
+            price = usd(symbol_data['price'])
+            return render(request, 'quoted.html', {'symbol': symbol, 'name': name, 'price': price})
+        else:
+            return redirect('/quote')
+    return render(request, 'quote.html')
 
 @require_http_methods(['GET'])
 @login_required
@@ -127,6 +185,8 @@ def register(request):
             user.save()
             login(request, user)
             return redirect('/')
+        else:
+            return redirect('/register')
     return render(request, 'register.html')
 
 @require_http_methods(['GET', 'POST'])
@@ -140,6 +200,8 @@ def login_user(request):
             if user is not None:
                 login(request, user)
                 return redirect('/')
+        else:
+            return redirect('/login')
     return render(request, 'login.html')
 
 @require_http_methods(['GET'])

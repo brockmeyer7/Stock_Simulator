@@ -9,7 +9,7 @@
         <div class="mb-3">
             <select id="symbol" name="symbol" placeholder="">
                 {% for row in owned %}
-                <option>{{ row["symbol"] }}</option>
+                <option>{{ row.symbol }}</option>
                 {% endfor %}
             </select>
         </div>
