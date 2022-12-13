@@ -1,5 +1,4 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse as response
 from django.contrib.auth import authenticate, login, logout
 from . models import User, Owned, Transactions
 from django.contrib.auth.decorators import login_required
@@ -91,6 +90,22 @@ def buy(request):
 
             return redirect('/')
     return render(request, 'buy.html')
+
+@require_http_methods(['GET', 'POST'])
+@login_required
+def sell(request):
+    pass
+
+@require_http_methods(['GET', 'POST'])
+@login_required
+def quote(request):
+    pass
+
+@require_http_methods(['GET'])
+@login_required
+def history(request):
+    transactions = Transactions.objects.filter(user_id=request.user)
+    return render(request, 'history.html', {'transactions': transactions})
 
 @require_http_methods(['GET', 'POST'])
 def register(request):
