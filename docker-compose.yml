@@ -1,5 +1,12 @@
 version: "3.8"
 services:
+    web:
+        build: ./app
+        command: python manage.py runserver 0.0.0.0:8000
+        volumes:
+        - ./app/:/usr/src/app
+        ports:
+        - 8000:8000
     pg:
         container_name: pg_container
         image: postgres:14.1-alpine3.15
