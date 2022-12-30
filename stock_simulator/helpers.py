@@ -6,7 +6,7 @@ import urllib.parse
 from functools import wraps
 
 
-def apology(message, code=400):
+def apology(request, message, code=400):
     """Render message as an apology to user."""
     def escape(s):
         """
@@ -18,7 +18,7 @@ def apology(message, code=400):
                          ("%", "~p"), ("#", "~h"), ("/", "~s"), ("\"", "''")]:
             s = s.replace(old, new)
         return s
-    return render("apology.html", {'top': code, 'bottom': escape(message)}), code
+    return render(request, "apology.html", {'top': code, 'bottom': escape(message)})
 
 
 def lookup(symbol):

@@ -27,6 +27,9 @@ class SellForm(forms.Form):
     symbol = forms.CharField()
     shares = forms.IntegerField(min_value=1)
 
+class AddCashForm(forms.Form):
+    amount = forms.FloatField()
+
 @require_http_methods(['GET'])
 @login_required
 def index(request):
@@ -65,7 +68,7 @@ def buy(request):
             shares = form.cleaned_data['shares']
 
             if lookup(symbol) is None:
-                return apology("Enter valid stock symbol")
+                return apology(request, "Enter valid stock symbol")
 
             shares = int(shares)
             symbol_data = lookup(symbol)
@@ -76,7 +79,7 @@ def buy(request):
             trigger = 0
             
             if cash < (price * shares):
-                return apology("Insufficient funds")
+                return apology(request, "Insufficient funds")
             for i in range(len(owned)):
                 if symbol == owned[i].symbol:
                     trigger = 1
@@ -110,7 +113,7 @@ def sell(request):
             for row in owned:
                 symbols_owned.append(row.symbol)
             if symbol not in symbols_owned:
-                return apology('Enter valid stock symbol')
+                return apology(request, 'Enter valid stock symbol')
 
             symbol_data = lookup(symbol)
             price = float(symbol_data['price'])
@@ -127,7 +130,7 @@ def sell(request):
                         user.save()
                         t.save()
                     elif shares > row.shares:
-                        return apology('Not enough shares')
+                        return apology(request, 'Not enough shares')
                     else:
                         row.shares = row.shares - shares
                         cash = cash + (price * shares)
@@ -150,7 +153,7 @@ def quote(request):
         if form.is_valid():
             symbol = form.cleaned_data['symbol']
             if lookup(symbol) is None:
-                return apology('Invalid ticker')
+                return apology(request, 'Invalid ticker')
             symbol_data = lookup(symbol)
             name = symbol_data['name']
             price = usd(symbol_data['price'])
@@ -175,11 +178,11 @@ def register(request):
             confirmation = form.cleaned_data['confirmation']
 
             if not username:
-                return apology("Input valid username")
+                return apology(request, "Input valid username")
             elif not password or not confirmation:
-                return apology("Input password and confirmation")
+                return apology(request, "Input password and confirmation")
             elif password != confirmation:
-                return apology("Passwords do not match")
+                return apology(request, "Passwords do not match")
             
             user = User.objects.create_user(username=username, password=password)
             user.save()
@@ -208,3 +211,21 @@ def login_user(request):
 def logout_user(request):
     logout(request)
     return redirect('/login')
+
+@require_http_methods(['GET', 'POST'])
+@login_required
+def add_cash(request):
+    if request.method=='POST':
+        form = AddCashForm(request.POST)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            if amount < 0:
+                return apology(request, 'Enter positive amount')
+            user = request.user
+            cash = user.cash
+            user.cash = cash + float(amount)
+            user.save()
+
+            return redirect('/')
+
+    return render(request, 'add_cash.html')
