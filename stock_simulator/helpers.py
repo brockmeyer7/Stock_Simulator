@@ -2,8 +2,18 @@ import os
 import requests
 from django.shortcuts import render
 import urllib.parse
-
 from functools import wraps
+from google.cloud import secretmanager
+
+def access_secret_version(project_id, secret_id):
+
+    # Create the Secret Manager client.
+    client = secretmanager.SecretManagerServiceClient()
+
+    # Build the resource name of the secret version.
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
+    return payload
 
 
 def apology(request, message, code=400):
@@ -26,7 +36,7 @@ def lookup(symbol):
 
     # Contact API
     try:
-        api_key = os.environ.get("API_KEY")
+        api_key = access_secret_version("1028621117483", "iex_api")
         url = f"https://cloud.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}"
         response = requests.get(url)
         response.raise_for_status()
