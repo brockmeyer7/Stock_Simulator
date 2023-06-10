@@ -27,21 +27,27 @@ def lookup(symbol):
     # Contact API
     try:
         api_key = os.environ.get("API_KEY")
-        url = f"https://cloud.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}"
-        response = requests.get(url)
-        response.raise_for_status()
-    except requests.RequestException:
+        quote_url = f"https://finnhub.io/api/v1/quote?symbol={urllib.parse.quote_plus(symbol)}&token={api_key}"
+        info_url = f"https://finnhub.io/api/v1/stock/profile2?symbol={urllib.parse.quote_plus(symbol)}&token={api_key}"
+        quote_r = requests.get(quote_url)
+        info_r = requests.get(info_url)
+        quote_r.raise_for_status()
+        info_r.raise_for_status()
+    except requests.RequestException as e:
+        print(e)
         return None
 
     # Parse response
     try:
-        quote = response.json()
+        quote = quote_r.json()
+        info = info_r.json()
         return {
-            "name": quote["companyName"],
-            "price": float(quote["latestPrice"]),
-            "symbol": quote["symbol"]
+            "name": info["name"],
+            "price": float(quote["c"]),
+            "symbol": info["ticker"]
         }
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError) as e:
+        print(e)
         return None
 
 

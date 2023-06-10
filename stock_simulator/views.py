@@ -12,23 +12,29 @@ class RegisterForm(forms.Form):
     password = forms.CharField()
     confirmation = forms.CharField()
 
+
 class BuyForm(forms.Form):
     symbol = forms.CharField()
     shares = forms.IntegerField(min_value=1)
+
 
 class LoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField()
 
+
 class QuoteForm(forms.Form):
     symbol = forms.CharField()
+
 
 class SellForm(forms.Form):
     symbol = forms.CharField()
     shares = forms.IntegerField(min_value=1)
 
+
 class AddCashForm(forms.Form):
     amount = forms.FloatField()
+
 
 @require_http_methods(['GET'])
 @login_required
@@ -58,6 +64,7 @@ def index(request):
 
     return render(request, 'index.html', {'data': data, 'cash_usd': cash_usd, 'gt_usd': gt_usd})
 
+
 @require_http_methods(['GET', 'POST'])
 @login_required
 def buy(request):
@@ -72,12 +79,12 @@ def buy(request):
 
             shares = int(shares)
             symbol_data = lookup(symbol)
-            price = float(symbol_data["price"])
+            price = symbol_data["price"]
             user = request.user
             owned = Owned.objects.filter(user_id=user.id)
             cash = float(user.cash)
             trigger = 0
-            
+
             if cash < (price * shares):
                 return apology(request, "Insufficient funds")
             for i in range(len(owned)):
@@ -91,13 +98,15 @@ def buy(request):
             cash = cash - (price * shares)
             user.cash = cash
             user.save()
-            t = Transactions(user_id=user, symbol=symbol, price=price, shares=shares, type="buy")
+            t = Transactions(user_id=user, symbol=symbol,
+                             price=price, shares=shares, type="buy")
             t.save()
 
             return redirect('/')
         else:
             return redirect('/buy')
     return render(request, 'buy.html')
+
 
 @require_http_methods(['GET', 'POST'])
 @login_required
@@ -116,7 +125,7 @@ def sell(request):
                 return apology(request, 'Enter valid stock symbol')
 
             symbol_data = lookup(symbol)
-            price = float(symbol_data['price'])
+            price = symbol_data['price']
             user = request.user
             cash = user.cash
 
@@ -125,7 +134,8 @@ def sell(request):
                     if shares == row.shares:
                         cash = cash + (price * shares)
                         user.cash = cash
-                        t = Transactions(user_id=user, symbol=symbol, price=price, shares=shares, type='sell')
+                        t = Transactions(
+                            user_id=user, symbol=symbol, price=price, shares=shares, type='sell')
                         row.delete()
                         user.save()
                         t.save()
@@ -135,7 +145,8 @@ def sell(request):
                         row.shares = row.shares - shares
                         cash = cash + (price * shares)
                         user.cash = cash
-                        t = Transactions(user_id=user, symbol=symbol, price=price, shares=shares, type='sell')
+                        t = Transactions(
+                            user_id=user, symbol=symbol, price=price, shares=shares, type='sell')
                         row.save()
                         user.save()
                         t.save()
@@ -144,6 +155,7 @@ def sell(request):
         else:
             return redirect('/sell')
     return render(request, 'sell.html', {'owned': owned})
+
 
 @require_http_methods(['GET', 'POST'])
 @login_required
@@ -162,15 +174,17 @@ def quote(request):
             return redirect('/quote')
     return render(request, 'quote.html')
 
+
 @require_http_methods(['GET'])
 @login_required
 def history(request):
     transactions = Transactions.objects.filter(user_id=request.user)
     return render(request, 'history.html', {'transactions': transactions})
 
+
 @require_http_methods(['GET', 'POST'])
 def register(request):
-    if request.method=='POST':
+    if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username']
@@ -183,14 +197,16 @@ def register(request):
                 return apology(request, "Input password and confirmation")
             elif password != confirmation:
                 return apology(request, "Passwords do not match")
-            
-            user = User.objects.create_user(username=username, password=password)
+
+            user = User.objects.create_user(
+                username=username, password=password)
             user.save()
             login(request, user)
             return redirect('/')
         else:
             return redirect('/register')
     return render(request, 'register.html')
+
 
 @require_http_methods(['GET', 'POST'])
 def login_user(request):
@@ -207,15 +223,17 @@ def login_user(request):
             return redirect('/login')
     return render(request, 'login.html')
 
+
 @require_http_methods(['GET'])
 def logout_user(request):
     logout(request)
     return redirect('/login')
 
+
 @require_http_methods(['GET', 'POST'])
 @login_required
 def add_cash(request):
-    if request.method=='POST':
+    if request.method == 'POST':
         form = AddCashForm(request.POST)
         if form.is_valid():
             amount = form.cleaned_data['amount']
